@@ -3,45 +3,43 @@ import requests
 import os
 from dotenv import load_dotenv
 from twilio.rest import Client
+import logging
+
+LOG_FORMAT = '%(levelname)s %(asctime)s - %(message)s'
+logging.basicConfig(level=logging.ERROR, 
+                    format=LOG_FORMAT)
+logger = logging.getLogger()
 
 load_dotenv()
 
-vk_token = os.getenv('VK_TOKEN')
-auth_token = os.getenv('AUTH_TOKEN')
-account_sid = os.getenv('ACCOUNT_SID')
-number_from = os.getenv('NUMBER_FROM')
-number_to = os.getenv('NUMBER_TO')
-client = Client(account_sid, auth_token)
+VK_TOKEN = os.getenv('VK_TOKEN')
+VERSION = os.getenv('VERSION')
+AUTH_TOKEN = os.getenv('AUTH_TOKEN')
+ACCOUNT_SID = os.getenv('ACCOUNT_SID')
+NUMBER_FROM = os.getenv('NUMBER_FROM')
+NUMBER_TO = os.getenv('NUMBER_TO')
+TWILIO_CLIENT = Client(ACCOUNT_SID, AUTH_TOKEN)
 
 
 def get_status(user_id):
     params = {
         'user_ids': user_id,
         'fields': 'online',
-        'v': '5.92',
-        'access_token': vk_token,
+        'v': VERSION,
+        'access_token': VK_TOKEN,
     }
-    VK_URL = 'https://api.vk.com/method/'
+    vk_url = 'https://api.vk.com/method/'
     method = 'users.get'
-    URL = VK_URL + method
-    try:
-        status = requests.post(URL, params=params).json()
-        return status['response'][0]['online']
-    except requests.exceptions.HTTPError as errh:
-        print ("Http Error:",errh)
-    except requests.exceptions.ConnectionError as errc:
-        print ("Error Connecting:",errc)
-    except requests.exceptions.Timeout as errt:
-        print ("Timeout Error:",errt)
-    except requests.exceptions.RequestException as err:
-        print ("OOps: Something Else",err)
+    url = vk_url + method
+    status = requests.post(url, params=params).json()
+    return status['response'][0]['online']
 
-
+    
 def sms_sender(sms_text):
-    message = client.messages.create(
+    message = TWILIO_CLIENT.messages.create(
                                      body=sms_text,
-                                     from_=number_from,
-                                     to=number_to
+                                     from_=NUMBER_FROM,
+                                     to=NUMBER_TO
                                     )
     return message.sid
 
@@ -49,7 +47,18 @@ def sms_sender(sms_text):
 if __name__ == '__main__':
     vk_id = input('Введите id ')
     while True:
-        if get_status(vk_id) == 1:
-            sms_sender(f'{vk_id} сейчас онлайн!')
-            break
+        try:
+            if get_status(vk_id) == 1:
+                sms_sender(f'{vk_id} сейчас онлайн!')
+                break
+        except requests.exceptions.HTTPError as errh:
+            logger.error(f'Http Error: {errh}')
+        except requests.exceptions.ConnectionError as errc:
+            logger.error(f'Error Connecting: {errc}')
+        except requests.exceptions.Timeout as errt:
+            logger.error(f'Timeout Error: {errt}')
+        except requests.exceptions.RequestException as err:
+            logger.error(f'OOps: Something Else {err}')
+        except Exception as e:
+            logger.error(f'Exception: {e}')
         time.sleep(5)
