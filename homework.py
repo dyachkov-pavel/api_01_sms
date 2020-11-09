@@ -43,15 +43,15 @@ def get_status(user_id):
     except requests.exceptions.Timeout as errt:
         logger.error(f'Timeout Error: {errt}')
         raise errt
+    except KeyError as errk:
+        logger.error(f'Key Error: {errk}')
+        raise errk
+    except IndexError as erri:
+        logger.error(f'Index Error: {erri}')
+        raise erri
     except requests.exceptions.RequestException as err:
         logger.error(f'OOps: Something Else {err}')
         raise err
-    except KeyError as errk:
-        logger.error(f'OOps: Something Else {errk}')
-        raise errk
-    except IndexError as erri:
-        logger.error(f'OOps: Something Else {erri}')
-        raise erri
 
 
 def sms_sender(sms_text):
